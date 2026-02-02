@@ -91,8 +91,13 @@ async def forward_request(slug: str, path: str, request: Request):
         tunnel_manager.pending_requests.pop(request_id, None)
         raise HTTPException(status_code=504, detail="Tunnel timeout")
 
+    # Get headers but remove Content-Length (will be recalculated by FastAPI)
+    response_headers = response_data.get("headers", {})
+    response_headers = {k: v for k, v in response_headers.items() 
+                       if k.lower() not in ['content-length', 'transfer-encoding']}
+
     return JSONResponse(
         status_code=response_data.get("status", 200),
         content=response_data.get("body"),
-        headers=response_data.get("headers", {}),
+        headers=response_headers,
     )
