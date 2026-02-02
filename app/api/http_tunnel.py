@@ -2,7 +2,7 @@ import json
 import uuid
 import logging
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from app.services.tunnel_manager import tunnel_manager
 from app.services.tunnel_registry import tunnel_registry
 from app.services.control_plane_client import control_plane_client
@@ -96,8 +96,11 @@ async def forward_request(slug: str, path: str, request: Request):
     response_headers = {k: v for k, v in response_headers.items() 
                        if k.lower() not in ['content-length', 'transfer-encoding']}
 
-    return JSONResponse(
+    # Return raw response body (it's already properly formatted from local server)
+    body = response_data.get("body", "")
+    
+    return Response(
         status_code=response_data.get("status", 200),
-        content=response_data.get("body"),
+        content=body,
         headers=response_headers,
     )
