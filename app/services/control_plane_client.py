@@ -3,14 +3,27 @@ Phase 4: Control Plane client for slug resolution.
 
 Communicates with Bindu Control Plane to resolve slugs to tunnel_ids
 and validate tunnel metadata.
+
+MOCK MODE: Uses in-memory data instead of HTTP calls for testing.
 """
 import logging
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import httpx
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Mock data for testing without Control Plane
+MOCK_SLUGS = {
+    "my-slug": "tunnel_test123",
+    "test-slug": "tunnel_abc456",
+}
+
+MOCK_TUNNELS = {
+    "tunnel_test123": {"valid": True, "status": "active"},
+    "tunnel_abc456": {"valid": True, "status": "active"},
+}
 
 
 class ControlPlaneClient:
@@ -18,9 +31,14 @@ class ControlPlaneClient:
 
     def __init__(self):
         self._client: Optional[httpx.AsyncClient] = None
+        self._mock_mode = True  # Enable mock mode by default
 
     async def connect(self):
         """Initialize HTTP client."""
+        if self._mock_mode:
+            logger.info("Control Plane client initialized in MOCK MODE - no external calls")
+            return
+        
         self._client = httpx.AsyncClient(
             base_url=settings.CONTROL_PLANE_URL,
             timeout=httpx.Timeout(10.0),
@@ -44,6 +62,20 @@ class ControlPlaneClient:
             }
             or None if not found
         """
+        # Mock mode - return in-memory data
+        if self._mock_mode:
+            tunnel_id = MOCK_SLUGS.get(slug)
+            if tunnel_id:
+                logger.info("Slug resolved (MOCK)", extra={"slug": slug, "tunnel_id": tunnel_id})
+                return {
+                    "tunnel_id": tunnel_id,
+                    "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat(),
+                    "status": "active"
+                }
+            logger.info("Slug not found (MOCK)", extra={"slug": slug})
+            return None
+        
+        # Real mode - make HTTP call
         if not self._client:
             raise RuntimeError("ControlPlaneClient not connected")
 
@@ -92,6 +124,27 @@ class ControlPlaneClient:
             }
             or None if validation request fails
         """
+        # Mock mode - accept any token (for testing without auth)
+        if self._mock_mode:
+            tunnel_info = MOCK_TUNNELS.get(tunnel_id)
+            if tunnel_info:
+                logger.info("Tunnel validated (MOCK)", extra={"tunnel_id": tunnel_id})
+                return {
+                    "valid": tunnel_info["valid"],
+                    "tunnel_id": tunnel_id,
+                    "status": tunnel_info["status"],
+                    "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat()
+                }
+            # Accept any tunnel_id in mock mode
+            logger.info("Tunnel auto-validated (MOCK)", extra={"tunnel_id": tunnel_id})
+            return {
+                "valid": True,
+                "tunnel_id": tunnel_id,
+                "status": "active",
+                "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat()
+            }
+        
+        # Real mode - make HTTP call
         if not self._client:
             raise RuntimeError("ControlPlaneClient not connected")
 

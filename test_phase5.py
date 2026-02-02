@@ -21,9 +21,9 @@ import websockets
 from datetime import datetime
 
 # Test configuration
-CONTROL_PLANE_URL = "http://localhost:8000"
-EDGE_GATEWAY_URL = "http://localhost:8080"
-EDGE_WS_URL = "ws://localhost:8080"
+CONTROL_PLANE_URL = "http://localhost:8000"  # Keep this for mock CP
+EDGE_GATEWAY_URL = "http://34.0.0.30:8080"   # Your VM IP
+EDGE_WS_URL = "ws://34.0.0.30:8080"          # Your VM IP (ws not wss)
 
 
 async def test_valid_token():
