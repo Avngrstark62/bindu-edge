@@ -18,10 +18,14 @@ logger = logging.getLogger(__name__)
 MOCK_SLUGS = {
     "my-slug": "tunnel_test123",
     "test-slug": "tunnel_abc456",
+    # Manual/register mapping for job-posting-agent
+    "job-posting-agent": "job_posting_agent_tunnel",
 }
 
 MOCK_TUNNELS = {
     "tunnel_test123": {"valid": True, "status": "active"},
+    # Manual/register tunnel entry for job_posting_agent_tunnel
+    "job_posting_agent_tunnel": {"valid": True, "status": "active"},
     "tunnel_abc456": {"valid": True, "status": "active"},
 }
 
